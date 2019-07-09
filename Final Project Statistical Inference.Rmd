@@ -1,0 +1,81 @@
+---
+title: "Analysis of the Exponential Distribution in R"
+date: "19/06/2019"
+output: pdf_document
+---
+
+# Synopsis
+
+In this document we explore the proprieties of the exponential distribution in R and compare it with the Central Limit Theorem. Our goal is to show how the mean of 40 exponentials can be approximated by a normal distribution.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+## Part 1: Simulation Exercise Instructions
+
+The exponential distribution can be simulated in R with rexp(n, lambda) where lambda is the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also 1/lambda. We set lambda = 0.2 for all of the simulations.
+
+```{r params}
+lambda <- 0.2
+pop.mean <- 1/lambda
+pop.sd <- 1/lambda
+n <- 40
+set.seed(2019)
+sim <- NULL
+for (i in 1:1000) sim = c(sim, mean(rexp(n, lambda)))
+hist(sim, main = "Distribution of the mean of 40 exponentials", xlab = "mean of exponentials")
+```
+
+At first glance, the shape of our histogram looks like a bell curve.  
+
+### Sample mean
+
+Let's calculate the mean of our sample.
+
+```{r mean}
+msim <- mean(sim)
+print(msim)
+```
+
+The mean of our sample is equal to `r round(msim,2)`, compared with `r 1/lambda` for the population. The expected value of the sample mean is quite the same as the expected value of the population it estimates. We can say it is unbiased.
+
+### Variability of the sample
+
+We will now take a look at the variance of the mean distribution.
+Theoretically, we know the formula of the variance of the mean distribution to be sigma/sqrt(n).   
+We can also compute the variance directly from our data using the apply function.   
+Let's calculate the variance both ways and check if they match.
+
+```{r variance}
+vsim.th <- (1/lambda)^2/n
+vsim.pr <- (sd(apply(matrix(rexp(n*1000,lambda),1000),1,mean)))^2
+cat(" Theoretical Value :", vsim.th,"\n","Actual value :", vsim.pr)
+```
+
+The variance of our sample is equal to `r round(vsim.pr,3)`, compared with `r round(vsim.th,3)` in theory. It's close, but it's not equal. Maybe we don't have enough trials. Let's calculate with 1 000 000 trials instead of 1 000.
+
+```{r var.million}
+vsim.pr2 <- (sd(apply(matrix(rexp(n*1000000,lambda),1000000),1,mean)))^2
+cat(" Theoretical Value :", vsim.th,"\n","Actual value :", vsim.pr2)
+```
+
+This time we obtain `r round(vsim.pr2,3)`, which is much closer to the theoretical value.  
+That last calculation took a while, but at least we can see that the more trials we launch, the closer we get to the theoretical value.
+
+### Distribution
+
+Now, let's use the Central Limit Theorem to check if we can approximate the values with a Normal distribution.
+According to this theorem, the distribution of averages of iid random variables becomes that of a standard normal as the sample size increases.  
+Since we have iid variables and our sample size is large enough, we can apply the Central Limit Theorem : let's subtract the mean (1/lambda) and divide by the square root of the variance/n.
+
+```{r plot}
+mns = NULL
+for (i in 1:1000) mns = c(mns, mean(rexp(40, lambda)))
+clt <- (mns-1/lambda)/((1/lambda)/sqrt(40))
+
+qplot(clt, binwidth = 0.25, fill = I("blue"), colour = I("white"), main = "Approximation of a Normal Distribution", xlab = "Normal Distribution")
+```
+
+In the figure above, we can observe that our approximation follows a standard bell curve centered on 0 with an approximate standard deviation of 1.  
